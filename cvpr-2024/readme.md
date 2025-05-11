@@ -3,4 +3,4 @@
 
 ## open-source progress
 
-- [x] STA based stillfast code.
+- [x] STA based on stillfast code.
