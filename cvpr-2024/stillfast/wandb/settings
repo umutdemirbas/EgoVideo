@@ -1,0 +1,5 @@
+[default]
+entity = chenguo1177
+project = stmat
+base_url = https://api.wandb.ai
+
