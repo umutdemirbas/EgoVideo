@@ -18,7 +18,7 @@ Champion Solutions repository for EgoVis challenges in CVPR2024 workshop.
 - [ ] Codes for Goalsteps and NLQ
 - [ ] Codes for EK-100 Action Recognition
 - [ ] Codes for EK-100 MIR
-- [ ] Codes for STA
+- [x] Codes for STA
 - [ ] Codes for LTA
 - [ ] Codes for MQ
 
