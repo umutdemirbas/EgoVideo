@@ -1,0 +1,3 @@
+[submodule "cvpr-2024/AVION"]
+	path = cvpr-2024/AVION
+	url = https://github.com/umutdemirbas/AVION.git
