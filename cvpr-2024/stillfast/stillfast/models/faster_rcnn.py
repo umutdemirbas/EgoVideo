@@ -2,7 +2,14 @@ from turtle import forward
 from torchvision.models.detection import faster_rcnn
 from torchvision.models.detection._utils import overwrite_eps
 from torchvision._internally_replaced_utils import load_state_dict_from_url
-from torchvision.models.detection.faster_rcnn import model_urls
+try:
+    from torchvision.models.detection.faster_rcnn import model_urls
+except ImportError:
+    model_urls = {
+        "fasterrcnn_resnet50_fpn_coco": "https://download.pytorch.org/models/fasterrcnn_resnet50_fpn_coco-258fb6c6.pth",
+        "fasterrcnn_mobilenet_v3_large_320_fpn_coco": "https://download.pytorch.org/models/fasterrcnn_mobilenet_v3_large_320_fpn-907ea3f9.pth",
+        "fasterrcnn_mobilenet_v3_large_fpn_coco": "https://download.pytorch.org/models/fasterrcnn_mobilenet_v3_large_fpn-fb6a5cc7.pth",
+    }
 from .build import MODEL_REGISTRY
 import torch
 from stillfast.transforms import GeneralizedRCNNTransformWithHorizontalFlip

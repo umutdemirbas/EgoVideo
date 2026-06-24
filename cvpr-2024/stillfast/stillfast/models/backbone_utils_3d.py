@@ -13,13 +13,13 @@ from stillfast.models.vision_transformer import vit_base_patch16_224_umt_k400, v
 try:
     import sys
 
-    sys.path.append("/mnt/lustre/chenguo/petrelfs/workspace/AVION/")
+    sys.path.append("/cluster/scratch/udemirbas/EgoVideo/cvpr-2024/AVION")
     from avion.models.internvideo2.transformer import VisionTransformer
     from avion.models.model_clip import CLIP
     from avion.models.transformer import TextTransformer
     print("import VisionTransformer from avion")
     
-    def new_forward(self, x):
+    def new_forward(self, x, return_f3d=True):
         x = self.visual(x, return_f3d=True)
         return  x
     
@@ -33,7 +33,7 @@ try:
         vocab_size=49408,
         patch_dropout=0.,
         drop_path_rate=0.,
-        num_frames=8,
+        num_frames=4,
         use_fast_conv1=False,
         use_flash_attn=False,
         project_embed_dim=512,
@@ -55,13 +55,13 @@ try:
             qk_normalization=True,
             depth=40,
             use_flash_attn=True,
-            use_fused_rmsnorm=True,
+            use_fused_rmsnorm=False,
             use_fused_mlp=False,
             fused_mlp_heuristic=1,
             attn_pool_num_heads=16,
             clip_embed_dim=768,
             layerscale_no_force_fp32=True,
-            num_frames=num_frames,
+            num_frames=8,
             tubelet_size=1,
             sep_pos_embed=False,
             use_checkpoint=True,
@@ -71,15 +71,34 @@ try:
         text_model = TextTransformer(context_length=context_length, vocab_size=vocab_size, width=768, heads=12, layers=12, output_dim=project_embed_dim, causal_mask=not use_bidirectional_lm)
         model = CLIP(embed_dim=project_embed_dim, vision_model=vision_model, text_model=text_model, freeze_temperature=freeze_temperature, vision_width=768)
 
-        ckpt = torch.load("/mnt/petrelfs/chenguo/pretrained_models/internvideo/intern_1b_8f.pt", map_location='cpu')
-        state_dict = ckpt["state_dict"]
+        ckpt = torch.load("/cluster/scratch/udemirbas/EgoVideo/backbone/model/checkpoint/ckpt_4frames.pth", map_location='cpu')
+        state_dict = ckpt  # ckpt_4frames.pth is a flat state dict, not nested under "state_dict"
 
         new_state_dict = dict()
         for key, value in state_dict.items():
             if key.startswith("module."):
                 new_state_dict[key[7:]] = value
 
-        info =  model.load_state_dict(new_state_dict, strict=False)    
+        ckpt_num_frames = 4
+        target_num_frames = 8
+        if ckpt_num_frames != target_num_frames:
+            HW = (224 // 14) ** 2  # 256 spatial patches per frame
+            for pe_key in ['visual.pos_embed', 'visual.clip_pos_embed']:
+                if pe_key in new_state_dict:
+                    old_pe = new_state_dict[pe_key]  # [1, T_old*HW+1, D]
+                    cls_pe = old_pe[:, :1, :]
+                    spatial_pe = old_pe[:, 1:, :]  # [1, T_old*HW, D]
+                    D = spatial_pe.shape[-1]
+                    spatial_pe = spatial_pe.reshape(1, ckpt_num_frames, HW, D)
+                    spatial_pe = spatial_pe.permute(0, 3, 1, 2)  # [1, D, T_old, HW]
+                    spatial_pe = torch.nn.functional.interpolate(
+                        spatial_pe, size=(target_num_frames, HW), mode='bilinear', align_corners=False
+                    )
+                    spatial_pe = spatial_pe.permute(0, 2, 3, 1).reshape(1, target_num_frames * HW, D)
+                    new_state_dict[pe_key] = torch.cat([cls_pe, spatial_pe], dim=1)
+                    print(f"Interpolated {pe_key} from {ckpt_num_frames} to {target_num_frames} frames")
+
+        info =  model.load_state_dict(new_state_dict, strict=False)
         print(info)    
 
         return model
@@ -102,20 +121,20 @@ def build_clean_3d_backbone(
 ):
     if backbone_name not in ['slow_r50', 'x3d_l', 'x3d_m', 'r2plus1d_r50', 'vit', 'vit-1b']:
         raise ValueError(f"Backbone {backbone_name} is not supported with 3D models")
-    if backbone_name != "vit":
+    if backbone_name not in ['vit', 'vit-1b']:
         backbone = torch.hub.load("facebookresearch/pytorchvideo", model=backbone_name, pretrained=pretrained)
         del backbone.blocks[5]
-    elif backbone_name != "vit-1b":
-        backbone = InternVideoCLIP_VIT_g_14_ego4dv1_howtoego_pretrained_f8()
     else:
-        backbone = vit_base_patch16_224_umt_k400(ckpt_path="/mnt/petrelfs/chenguo/workspace/w/workspace/EgoAnticipator/work_dirs/anti_pretrain_ego4d_v0_vitb_umt_k400/iter_51000.pth")
-        
+        backbone = InternVideoCLIP_VIT_g_14_ego4dv1_howtoego_pretrained_f8()
+
     if backbone_name in ['slow_r50', 'r2plus1d_r50']:
         channels_list = [256, 512, 1024, 2048]
     elif backbone_name in ['x3d_l', 'x3d_m']:
         channels_list = [24, 48, 96, 192]
-    elif backbone_name in ['vit']:
+    elif backbone_name == 'vit':
         channels_list = [768, 768, 768, 768]
+    elif backbone_name == 'vit-1b':
+        channels_list = [1408, 1408, 1408, 1408]
     backbone.channels = channels_list
 
     if temporal_causal_conv3d:

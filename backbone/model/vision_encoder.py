@@ -417,7 +417,7 @@ class PretrainVisionTransformer(nn.Module):
         
         self.num_frames = num_frames
         self.tubelet_size = tubelet_size
-        assert use_flash_attn == use_fused_rmsnorm == use_fused_mlp, 'use_flash_attn, use_fused_rmsnorm and use_fused_mlp should be consistent'
+        # assert use_flash_attn == use_fused_rmsnorm == use_fused_mlp, 'use_flash_attn, use_fused_rmsnorm and use_fused_mlp should be consistent'
         
         self.use_flash_attn = use_flash_attn
         self.embed_dim = embed_dim

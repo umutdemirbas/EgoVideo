@@ -2,6 +2,7 @@ import os
 from re import T
 from stillfast.tasks.detection import SimpleDetectionTask
 from stillfast.tasks.sta import STATask
+from stillfast.tasks.egovideo_latent_sta import StillFastLatentSTATask
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning import Trainer
 from stillfast.config.defaults import get_cfg
@@ -20,6 +21,8 @@ def main(cfg):
         TaskType = SimpleDetectionTask
     elif cfg.TASK == "sta":
         TaskType = STATask
+    elif cfg.TASK == "stillfast_latent_sta":
+        TaskType = StillFastLatentSTATask
     else:
         raise NotImplementedError(f"Task {cfg.TASK} not implemented")
 
@@ -66,8 +69,8 @@ def main(cfg):
         max_epochs=cfg.SOLVER.MAX_EPOCH,
         num_sanity_val_steps=3,
         benchmark=cfg.SOLVER.BENCHMARK,
-        precision=cfg.SOLVER.PRECISION,
-        replace_sampler_ddp=cfg.SOLVER.REPLACE_SAMPLER_DDP,
+        precision="16-mixed" if cfg.SOLVER.PRECISION == 16 else cfg.SOLVER.PRECISION,
+        use_distributed_sampler=cfg.SOLVER.REPLACE_SAMPLER_DDP,
         fast_dev_run=cfg.FAST_DEV_RUN,
         default_root_dir=join(cfg.OUTPUT_DIR, cfg.TASK),
         **args,

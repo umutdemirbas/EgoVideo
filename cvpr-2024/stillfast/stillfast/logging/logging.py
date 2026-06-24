@@ -1,4 +1,5 @@
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+# from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger as LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 #from pytorch_lightning.utilities import _convert_params, _flatten_dict, _sanitize_callable_params
 import os

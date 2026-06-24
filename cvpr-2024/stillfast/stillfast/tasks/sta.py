@@ -20,6 +20,9 @@ class STATask(BaseTask):
         self.learning_rate = self.cfg.SOLVER.BASE_LR
         self.checkpoint_metric = 'map_box_noun_verb_ttc'
 
+        self._val_outputs = []
+        self._test_outputs = []
+
     def forward(self, x):
         self.model.eval()
         return self.model(x)
@@ -35,12 +38,13 @@ class STATask(BaseTask):
     def test_step(self, batch, batch_idx):
         preds = self.model(batch)
 
-        return {
+        self._test_outputs.append({
             'uids': batch['uids'],
             'preds': PackedTensorDictionary(preds)
-        }
+        })
 
-    def test_epoch_end(self, outs):
+    def on_test_epoch_end(self):
+        outs = self._test_outputs
         outs = list_gather(outs)
         uids = list(itertools.chain(*[o['uids'] for o in outs]))
         preds = sum([o['preds'] for o in outs]).unpack()
@@ -89,6 +93,7 @@ class STATask(BaseTask):
                 json.dump(output_dict, f)
 
         print(f"Test done on {len(pred_detections)} predictions, {sum([len(b) for b in pred_boxes])} boxes in total")
+        self._test_outputs.clear()
 
     def validation_step(self, batch, batch_idx):
 
@@ -108,7 +113,7 @@ class STATask(BaseTask):
         gt_ttcs = [t['ttc_targets'].cpu().numpy() for t in targets]
         
 
-        return {
+        self._val_outputs.append({
             "uids" : list(uids),
             "pred_boxes" : pred_boxes,
             "pred_nouns" : pred_nouns,
@@ -119,9 +124,10 @@ class STATask(BaseTask):
             "gt_nouns" : gt_nouns,
             "gt_verbs": gt_verbs,
             "gt_ttcs": gt_ttcs
-        }
+        })
 
-    def validation_epoch_end(self, outs):
+    def on_validation_epoch_end(self):
+        outs = self._val_outputs
         uids = list(itertools.chain(*[o['uids'] for o in outs]))
         pred_boxes = list(itertools.chain.from_iterable([o['pred_boxes'] for o in outs]))
         pred_nouns = list(itertools.chain.from_iterable([o['pred_nouns'] for o in outs]))
@@ -192,3 +198,4 @@ class STATask(BaseTask):
                 self.log(f"{name}", val)
 
         print(f"Validation done on {len(pred_detections)} predictions, {sum([len(b) for b in pred_boxes])} boxes in total")
+        self._val_outputs.clear()

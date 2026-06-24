@@ -34,7 +34,8 @@ class FlashAttention(nn.Module):
         """
 
         assert not need_weights
-        assert qkv.dtype in [torch.float16, torch.bfloat16]
+        if qkv.dtype not in [torch.float16, torch.bfloat16]:
+            qkv = qkv.to(torch.bfloat16)
         assert qkv.is_cuda
 
         if cu_seqlens is None:

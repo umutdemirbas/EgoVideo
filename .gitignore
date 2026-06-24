@@ -3,3 +3,7 @@ batch*
 *.out
 */__pycache__/
 __pycache__/
+logs/
+backbone/model/checkpoint/
+AVION_temp/
+ego4d_data/

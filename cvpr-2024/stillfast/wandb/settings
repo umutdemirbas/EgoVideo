@@ -1,5 +1,5 @@
 [default]
-entity = chenguo1177
-project = stmat
+entity = umutdemirbas-eth-z-rich
+project = Latent
 base_url = https://api.wandb.ai
 
