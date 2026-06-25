@@ -7,3 +7,4 @@ logs/
 backbone/model/checkpoint/
 AVION_temp/
 ego4d_data/
+cvpr-2024/stillfast/output/

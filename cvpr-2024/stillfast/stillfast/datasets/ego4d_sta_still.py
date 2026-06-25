@@ -107,7 +107,7 @@ class Ego4dShortTermAnticipationStill(torch.utils.data.Dataset):
     def _load_still_frame(self, video_id, frame):
         """ Load images from lmdb. """
 
-        still_img = Image.open(os.path.join(self._still_frames_path, f"{video_id}_{frame:07d}.jpg"))
+        still_img = Image.open(os.path.join(self._still_frames_path, video_id, f"{frame:07d}.jpg"))
 
         return still_img
 

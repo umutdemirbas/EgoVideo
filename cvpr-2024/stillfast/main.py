@@ -58,6 +58,12 @@ def main(cfg):
     def get_strategy(strategy):
         if strategy=='ddp':
             return DDPStrategy(find_unused_parameters=False)
+        elif strategy=='ddp_find_unused_parameters_true':
+            return DDPStrategy(find_unused_parameters=True)
+        elif strategy=='ddp_static_graph':
+            # static_graph handles both unused params and the parameter
+            # reuse from gradient checkpointing (mark-ready-twice).
+            return DDPStrategy(static_graph=True)
         else:
             raise ValueError(f"Strategy {strategy} not implemented")
 
